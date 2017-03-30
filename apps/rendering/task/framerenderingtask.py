@@ -98,19 +98,15 @@ class FrameRenderingTask(RenderingTask):
         img_repr = load_img(new_chunk_file_path)
         img = img_repr.to_pil()
 
-        if self.preview_file_path[num] is None:
-            self.preview_file_path[num] = "{}{}".format(os.path.join(self.tmp_dir, "current_preview"), num)
-        if self.preview_task_file_path[num] is None:
-            self.preview_task_file_path[num] = "{}{}".format(os.path.join(self.tmp_dir, "current_task_preview"), num)
-
         if not final:
-            img = self._paste_new_chunk(img, self.preview_file_path[num], part, self.total_tasks / len(self.frames))
+            img = self._paste_new_chunk(img, self._get_preview_file_path(num), part, self.total_tasks / len(self.frames))
 
         img_x, img_y = img.size
-        img = img.resize((int(round(self.scale_factor * img_x)), int(round(self.scale_factor * img_y))),
-                           resample=Image.BILINEAR)
-        img.save(self.preview_file_path[num], "BMP")
-        img.save(self.preview_task_file_path[num], "BMP")
+        img = img.resize((int(round(self.scale_factor * img_x)),
+                          int(round(self.scale_factor * img_y))),
+                         resample=Image.BILINEAR)
+        img.save(self._get_preview_file_path(num), "BMP")
+        img.save(self._get_preview_task_file_path(num), "BMP")
             
         img.close()
 
@@ -242,11 +238,24 @@ class FrameRenderingTask(RenderingTask):
 
     def __mark_sub_frame(self, sub, frame, color):
         idx = self.frames.index(frame)
-        preview_task_file_path = "{}{}".format(os.path.join(self.tmp_dir, "current_task_preview"), idx)
+        preview_task_file_path = self._get_preview_task_file_path(idx)
         img_task = self._open_frame_preview(preview_task_file_path)
         self._mark_task_area(sub, img_task, color, idx)
         img_task.save(preview_task_file_path, "BMP")
-        self.preview_task_file_path[idx] = preview_task_file_path
+
+    def _get_preview_task_file_path(self, num):
+        if self.preview_task_file_path[num] is None:
+            self.preview_task_file_path[num] = "{}{}".format(os.path.join(self.tmp_dir,
+                                                                          "current_task_preview"),
+                                                             num)
+        return self.preview_task_file_path[num]
+
+    def _get_preview_file_path(self, num):
+        if self.preview_file_path[num] is None:
+            self.preview_file_path[num] = "{}{}".format(os.path.join(self.tmp_dir,
+                                                                     "current_preview"), num)
+
+        return self.preview_file_path[num]
 
     def _get_output_name(self, frame_num):
         return get_frame_name(self.outfilebasename, self.output_format, frame_num)
